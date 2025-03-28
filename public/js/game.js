@@ -1,11 +1,11 @@
 // Game State
 let gameState = {
-    username: '',
-    gold: 0,
+    username: 'Player',
+    gold: 1000,
     army: {},
     castle: {
-        level: 0,
-        defenseBonus: 0
+        level: 1,
+        defenseBonus: 10
     },
     village: {
         serfs: 0,
@@ -43,19 +43,38 @@ document.querySelectorAll('.tab-btn').forEach(button => {
 // Initialize Game
 async function initializeGame() {
     try {
-        // Load game state from server
-        const response = await fetch('/api/game-state');
-        const data = await response.json();
+        // Load game state from Supabase
+        const { data, error } = await supabase
+            .from('game_states')
+            .select('*')
+            .single();
         
-        if (data.success) {
-            gameState = data.gameState;
+        if (error) throw error;
+        
+        if (data) {
+            gameState = data;
             updateUI();
         } else {
-            console.error('Failed to load game state:', data.error);
+            // Initialize new game state
+            const { data: newState, error: insertError } = await supabase
+                .from('game_states')
+                .insert([gameState])
+                .select()
+                .single();
+                
+            if (insertError) throw insertError;
+            
+            gameState = newState;
+            updateUI();
         }
     } catch (error) {
         console.error('Error initializing game:', error);
     }
+}
+
+// Save state after actions
+function saveGameState() {
+    localStorage.setItem('gameState', JSON.stringify(gameState));
 }
 
 // Update UI
@@ -196,20 +215,23 @@ function formatTime(ms) {
 // Build unit
 async function buildUnit(unitType) {
     try {
-        const response = await fetch('/api/build-unit', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ unit: unitType })
-        });
-        
-        const data = await response.json();
-        if (data.success) {
-            gameState = data.gameState;
+        const cost = getUnitCost(unitType);
+        if (gameState.gold >= cost) {
+            gameState.gold -= cost;
+            if (!gameState.army[unitType]) gameState.army[unitType] = 0;
+            gameState.army[unitType]++;
+            
+            // Update game state in Supabase
+            const { error } = await supabase
+                .from('game_states')
+                .update(gameState)
+                .eq('id', gameState.id);
+                
+            if (error) throw error;
+            
             updateUI();
         } else {
-            alert(data.error);
+            alert('Not enough gold!');
         }
     } catch (error) {
         console.error('Error building unit:', error);
@@ -220,21 +242,17 @@ async function buildUnit(unitType) {
 // Cancel queue item
 async function cancelQueueItem(index) {
     try {
-        const response = await fetch('/api/cancel-queue', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ index })
-        });
+        const { error } = await supabase
+            .from('game_states')
+            .update({
+                queue: gameState.queue.filter((_, i) => i !== index)
+            })
+            .eq('id', gameState.id);
+            
+        if (error) throw error;
         
-        const data = await response.json();
-        if (data.success) {
-            gameState = data.gameState;
-            updateUI();
-        } else {
-            alert(data.error);
-        }
+        gameState.queue = gameState.queue.filter((_, i) => i !== index);
+        updateUI();
     } catch (error) {
         console.error('Error canceling queue item:', error);
         alert('Failed to cancel queue item');
