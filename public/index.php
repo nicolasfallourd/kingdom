@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kingdom Management Game</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <!-- Load Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="container">
@@ -170,28 +172,68 @@
 
     <div class="notification-area" id="notification-area"></div>
 
+    <!-- Initialize Supabase -->
     <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            window.supabaseClient = supabase.createClient(
+                'https://iajhforizmdqzyzvfiqu.supabase.co',
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlhamhmb3Jpem1kcXp5enZmaXF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxNTY1NTcsImV4cCI6MjA1ODczMjU1N30.byoiCHewRowAHIq5toIGMuxrdgB5ojVc_dDzqdp7txI'
+            );
+
+            // Check if user is authenticated
+            const { data: { user }, error } = await window.supabaseClient.auth.getUser();
+            
+            if (!user) {
+                // If not authenticated, sign up anonymously
+                // Generate a more reliable random email
+                const randomId = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+                const anonymousEmail = `user_${randomId}@kingdom-game.com`;
+                
+                // Generate a secure random password
+                const randomPassword = Math.random().toString(36).substring(2, 10) + 
+                                      Math.random().toString(36).substring(2, 10) + 
+                                      Math.random().toString(36).substring(2, 10);
+                
+                const { data, error } = await window.supabaseClient.auth.signUp({
+                    email: anonymousEmail,
+                    password: randomPassword
+                });
+                
+                if (error) {
+                    console.error('Error signing up:', error);
+                    return;
+                }
+            }
+            
+            // Initialize game after authentication
+            initializeGame();
+        });
+
+        function initializeGame() {
+            loadConfig();
+            updateGameState();
+            setupTabs();
+            startUpdateInterval();
+        }
+
         // Game state management
         let gameState = null;
         let config = null;
         let lastUpdate = 0;
         let updateInterval = null;
 
-        // Initialize the game
-        document.addEventListener('DOMContentLoaded', function() {
-            loadConfig();
-            updateGameState();
-            setupTabs();
-            startUpdateInterval();
-        });
-
         // Tab management
         function setupTabs() {
             const tabs = document.querySelectorAll('.tab');
             tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    const tabId = tab.getAttribute('data-tab');
-                    switchTab(tabId);
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs and content
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and its content
+                    this.classList.add('active');
+                    document.getElementById(`${this.dataset.tab}-tab`).classList.add('active');
                 });
             });
         }
@@ -802,5 +844,6 @@
             });
         }
     </script>
+    <script src="/js/game.js"></script>
 </body>
-</html> 
+</html>
