@@ -44,7 +44,7 @@ document.querySelectorAll('.tab-btn').forEach(button => {
 async function initializeGame() {
     try {
         // Load game state from Supabase
-        const { data, error } = await supabase
+        const { data, error } = await window.supabaseClient
             .from('game_states')
             .select('*')
             .single();
@@ -56,7 +56,7 @@ async function initializeGame() {
             updateUI();
         } else {
             // Initialize new game state
-            const { data: newState, error: insertError } = await supabase
+            const { data: newState, error: insertError } = await window.supabaseClient
                 .from('game_states')
                 .insert([gameState])
                 .select()
@@ -222,7 +222,7 @@ async function buildUnit(unitType) {
             gameState.army[unitType]++;
             
             // Update game state in Supabase
-            const { error } = await supabase
+            const { error } = await window.supabaseClient
                 .from('game_states')
                 .update(gameState)
                 .eq('id', gameState.id);
@@ -242,7 +242,7 @@ async function buildUnit(unitType) {
 // Cancel queue item
 async function cancelQueueItem(index) {
     try {
-        const { error } = await supabase
+        const { error } = await window.supabaseClient
             .from('game_states')
             .update({
                 queue: gameState.queue.filter((_, i) => i !== index)
