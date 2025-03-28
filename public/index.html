@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kingdom Management Game</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Header Section -->
+        <header class="game-header">
+            <h1><span id="username-display">Loading...</span>'s Kingdom</h1>
+            <div class="header-stats">
+                <div class="resource">
+                    <span class="resource-label">Gold:</span>
+                    <span id="gold-display">0</span>
+                </div>
+                <div class="resource">
+                    <span class="resource-label">Total Army Power:</span>
+                    <span id="total-army-power">0</span>
+                </div>
+                <div class="resource">
+                    <span class="resource-label">Defense Power:</span>
+                    <span id="defense-power">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Left Column: Main Content -->
+            <div class="content-column">
+                <!-- Tab Navigation -->
+                <div class="tab-navigation">
+                    <button class="tab-btn active" data-tab="army">Army</button>
+                    <button class="tab-btn" data-tab="castle">Castle</button>
+                    <button class="tab-btn" data-tab="village">Village</button>
+                    <button class="tab-btn" data-tab="world">World</button>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="tab-content">
+                    <!-- Army Tab -->
+                    <div class="tab-pane active" id="army-tab">
+                        <div class="section">
+                            <h2>Build Units</h2>
+                            <div class="unit-grid" id="unit-grid">
+                                <!-- Unit cards will be dynamically inserted here -->
+                            </div>
+                        </div>
+                        <div class="section">
+                            <h2>Your Army</h2>
+                            <div class="army-display" id="army-display">
+                                <!-- Army units will be dynamically inserted here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Castle Tab -->
+                    <div class="tab-pane" id="castle-tab">
+                        <div class="section">
+                            <h2>Manage Your Castle</h2>
+                            <div class="castle-info">
+                                <p>Current Level: <span id="castle-level">0</span></p>
+                                <p>Defense Bonus: <span id="castle-defense-bonus">0</span>%</p>
+                                <button id="upgrade-castle-btn">Upgrade Castle</button>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <h2>Castle Defenses</h2>
+                            <div class="defense-controls">
+                                <button id="defense-simulation-btn">Simulate Defense</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Village Tab -->
+                    <div class="tab-pane" id="village-tab">
+                        <div class="section">
+                            <h2>Manage Your Village</h2>
+                            <div class="village-info">
+                                <p>Current Serfs: <span id="serf-count">0</span></p>
+                                <p>Income per Day: <span id="income-per-day">0</span></p>
+                            </div>
+                        </div>
+                        <div class="section">
+                            <h2>Economy</h2>
+                            <div class="economy-controls">
+                                <button id="build-serf-btn">Build Serf</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- World Tab -->
+                    <div class="tab-pane" id="world-tab">
+                        <div class="section">
+                            <h2>Discover Other Kingdoms</h2>
+                            <div class="kingdoms-list" id="kingdoms-list">
+                                <!-- Kingdoms will be dynamically inserted here -->
+                            </div>
+                        </div>
+                        <div class="section">
+                            <h2>Send Your Army to Battle!</h2>
+                            <div class="battle-controls">
+                                <button id="send-to-war-btn">Send Army to War</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Build Queue -->
+            <div class="queue-column">
+                <h2>Build Queue</h2>
+                <div class="queue-display" id="queue-display">
+                    <!-- Queue items will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Section -->
+        <footer class="game-footer">
+            <div class="footer-controls">
+                <button id="reset-game-btn">Reset Game</button>
+                <button id="reload-config-btn">Reload Config</button>
+                <button id="simulate-defense-btn">Simulate Defense</button>
+                <button id="load-save-btn">Load Save</button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+    <div id="war-results-modal" class="modal">
+        <div class="modal-content">
+            <h2>War Results</h2>
+            <div id="war-results-content"></div>
+            <button onclick="closeWarResultsModal()">Close</button>
+        </div>
+    </div>
+
+    <div id="war-reports-modal" class="modal">
+        <div class="modal-content">
+            <h2>War Reports</h2>
+            <div id="war-reports-content"></div>
+            <button onclick="closeWarReportsModal()">Close</button>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html> 
