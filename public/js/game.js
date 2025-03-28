@@ -1,11 +1,11 @@
 // Game State
 let gameState = {
-    username: 'Player',
-    gold: 1000,
+    username: '',
+    gold: 0,
     army: {},
     castle: {
-        level: 1,
-        defenseBonus: 10
+        level: 0,
+        defenseBonus: 0
     },
     village: {
         serfs: 0,
