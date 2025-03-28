@@ -7,6 +7,31 @@
     <link rel="stylesheet" href="/css/styles.css">
     <!-- Load Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Initialize Supabase client
+        document.addEventListener('DOMContentLoaded', async function() {
+            window.supabaseClient = supabase.createClient(
+                'https://iajhforizmdqzyzvfiqu.supabase.co',
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlhamhmb3Jpem1kcXp5enZmaXF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxNTY1NTcsImV4cCI6MjA1ODczMjU1N30.byoiCHewRowAHIq5toIGMuxrdgB5ojVc_dDzqdp7txI'
+            );
+
+            // Check if user is authenticated
+            const { data: { user }, error } = await window.supabaseClient.auth.getUser();
+            
+            if (!user) {
+                // If not authenticated, redirect to login page
+                window.location.href = '/login.php';
+                return;
+            }
+            
+            // Set username in the UI
+            const username = user.user_metadata?.username || user.email.split('@')[0];
+            document.getElementById('username').textContent = username;
+            
+            // Initialize game after authentication check
+            initializeGame();
+        });
+    </script>
 </head>
 <body>
     <div class="container">
@@ -14,7 +39,7 @@
             <h1>Kingdom Management Game</h1>
             <div class="user-info">
                 <p>Welcome, <span id="username">Loading...</span></p>
-                <a href="logout.php" class="logout-btn">Logout</a>
+                <a href="/logout.php" class="logout-btn">Logout</a>
             </div>
         </div>
 
@@ -172,52 +197,123 @@
 
     <div class="notification-area" id="notification-area"></div>
 
-    <!-- Initialize Supabase -->
     <script>
-        document.addEventListener('DOMContentLoaded', async function() {
-            window.supabaseClient = supabase.createClient(
-                'https://iajhforizmdqzyzvfiqu.supabase.co',
-                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlhamhmb3Jpem1kcXp5enZmaXF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMxNTY1NTcsImV4cCI6MjA1ODczMjU1N30.byoiCHewRowAHIq5toIGMuxrdgB5ojVc_dDzqdp7txI'
-            );
-
-            // Check if user is authenticated
-            const { data: { user }, error } = await window.supabaseClient.auth.getUser();
-            
-            if (!user) {
-                // If not authenticated, sign up anonymously
-                // Generate a more reliable random email
-                const randomId = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
-                const anonymousEmail = `user_${randomId}@kingdom-game.com`;
+        let gameState = null;
+        let otherKingdoms = [];
+        let warReports = [];
+        
+        async function initializeGame() {
+            try {
+                // Get the current user's session
+                const { data: { session }, error: sessionError } = await window.supabaseClient.auth.getSession();
                 
-                // Generate a secure random password
-                const randomPassword = Math.random().toString(36).substring(2, 10) + 
-                                      Math.random().toString(36).substring(2, 10) + 
-                                      Math.random().toString(36).substring(2, 10);
-                
-                const { data, error } = await window.supabaseClient.auth.signUp({
-                    email: anonymousEmail,
-                    password: randomPassword
-                });
-                
-                if (error) {
-                    console.error('Error signing up:', error);
+                if (sessionError || !session) {
+                    console.error('Session error:', sessionError);
+                    window.location.href = '/login.php';
                     return;
                 }
+                
+                // Fetch game state from Supabase
+                const { data: gameStateData, error: gameStateError } = await window.supabaseClient
+                    .from('game_states')
+                    .select('*')
+                    .eq('user_id', session.user.id)
+                    .single();
+                
+                if (gameStateError && gameStateError.code !== 'PGRST116') {
+                    console.error('Error fetching game state:', gameStateError);
+                    showNotification('Error loading game state', 'error');
+                    return;
+                }
+                
+                // If no game state exists, create a new one
+                if (!gameStateData) {
+                    const newGameState = {
+                        user_id: session.user.id,
+                        kingdom_name: `${session.user.user_metadata?.username || 'Kingdom'}'s Realm`,
+                        resources: {
+                            gold: 1000,
+                            food: 500,
+                            wood: 300,
+                            stone: 200
+                        },
+                        buildings: {
+                            castle: { level: 1, defense_bonus: 10 },
+                            barracks: { level: 1, training_speed: 1 },
+                            farm: { level: 1, food_production: 10 },
+                            mine: { level: 1, gold_production: 5 }
+                        },
+                        army: {
+                            swordsmen: 10,
+                            archers: 5,
+                            cavalry: 0,
+                            catapults: 0
+                        },
+                        last_resource_collection: new Date().toISOString()
+                    };
+                    
+                    const { data: insertedState, error: insertError } = await window.supabaseClient
+                        .from('game_states')
+                        .insert(newGameState)
+                        .select()
+                        .single();
+                    
+                    if (insertError) {
+                        console.error('Error creating new game state:', insertError);
+                        showNotification('Error creating game state', 'error');
+                        return;
+                    }
+                    
+                    gameState = insertedState;
+                } else {
+                    gameState = gameStateData;
+                }
+                
+                // Fetch other kingdoms for the world map
+                const { data: kingdoms, error: kingdomsError } = await window.supabaseClient
+                    .from('game_states')
+                    .select('user_id, kingdom_name, buildings, army')
+                    .neq('user_id', session.user.id)
+                    .limit(10);
+                
+                if (kingdomsError) {
+                    console.error('Error fetching kingdoms:', kingdomsError);
+                } else {
+                    otherKingdoms = kingdoms;
+                }
+                
+                // Fetch war reports
+                const { data: reports, error: reportsError } = await window.supabaseClient
+                    .from('war_reports')
+                    .select('*')
+                    .or(`attacker_id.eq.${session.user.id},defender_id.eq.${session.user.id}`)
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                
+                if (reportsError) {
+                    console.error('Error fetching war reports:', reportsError);
+                } else {
+                    warReports = reports;
+                }
+                
+                // Update UI with fetched data
+                updateUI();
+                updateWorldMap();
+                updateWarReports();
+                
+                // Collect resources that accumulated while offline
+                collectResources();
+                
+                // Set up resource collection interval
+                setInterval(collectResources, 60000); // Collect resources every minute
+                
+            } catch (error) {
+                console.error('Game initialization error:', error);
+                showNotification('Error initializing game', 'error');
             }
-            
-            // Initialize game after authentication
-            initializeGame();
-        });
-
-        function initializeGame() {
-            loadConfig();
-            updateGameState();
-            setupTabs();
-            startUpdateInterval();
         }
 
         // Game state management
-        let gameState = null;
         let config = null;
         let lastUpdate = 0;
         let updateInterval = null;
