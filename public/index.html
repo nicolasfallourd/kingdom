@@ -20,9 +20,18 @@
             
             if (!user) {
                 // If not authenticated, sign up anonymously
+                // Generate a more reliable random email
+                const randomId = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+                const anonymousEmail = `user_${randomId}@kingdom-game.com`;
+                
+                // Generate a secure random password
+                const randomPassword = Math.random().toString(36).substring(2, 10) + 
+                                      Math.random().toString(36).substring(2, 10) + 
+                                      Math.random().toString(36).substring(2, 10);
+                
                 const { data, error } = await window.supabaseClient.auth.signUp({
-                    email: `${Math.random().toString(36).substring(7)}@anonymous.com`,
-                    password: Math.random().toString(36).substring(7)
+                    email: anonymousEmail,
+                    password: randomPassword
                 });
                 
                 if (error) {
