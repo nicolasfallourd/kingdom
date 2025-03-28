@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "routes": [
+    { "src": "/login.php", "dest": "/login.php" },
+    { "src": "/logout.php", "dest": "/logout.php" },
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/(.+)", "dest": "/$1" }
+  ]
+}
